@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useRef, useState } from "react";
-import { motion, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
+import { motion, useMotionValueEvent, useScroll, useSpring, useTransform } from "framer-motion";
 
 const Herobanner: React.FC = () => {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -15,15 +15,23 @@ const Herobanner: React.FC = () => {
     // Second useScroll for translateY (full container height)
     const { scrollYProgress: translateProgress } = useScroll({
         target: containerRef,
-        offset: ["start start", "end start"], // From top entering to top leaving viewport
+        offset: ["start start", "end start"],
     });
 
     const textOpacity = useTransform(opacityProgress, [0, 1], [1, 0]);
-    const translateY = useTransform(translateProgress, [0, 1], [0, window.innerHeight]); // Move up by viewport height
+
+    // Raw translateY transform
+    const rawTranslateY = useTransform(translateProgress, [0, 1], [0, -window.innerHeight]);
+    // Smooth it with a spring
+    const translateY = useSpring(rawTranslateY, {
+        stiffness: 100, // Controls how "tight" the spring is
+        damping: 30,   // Controls how quickly it settles (higher = less bounce)
+        mass: 1,       // Controls inertia (lower = faster response)
+    });
 
     const [opacity0, setOpacity0] = useState<boolean>(false);
 
-    // Log translateY value
+    // Log translateY value for debugging
     useMotionValueEvent(translateY, "change", (value: number) => {
         console.log("translateY:", value);
     });
@@ -40,7 +48,7 @@ const Herobanner: React.FC = () => {
                 ref={containerRef}
                 className="w-screen flex flex-col h-screen items-start justify-center"
                 style={{
-                    translateY, // Should move up as you scroll down
+                    translateY,
                 }}
             >
                 <span className="bg-blue-800 rounded-2xl w-[90vw] text-center mx-auto">
